@@ -647,9 +647,7 @@ apache:
 
 L'exemple ci-dessus ajoute une section `global` avec la valeur `app: MyWordPress`. Cette valeur est disponible pour _tous_ les charts sous la forme `.Values.global.app`.
 
-For example, the `mysql` templates may access `app` as `{{
-.Values.global.app}}`, and so can the `apache` chart. Effectively, the values
-file above is regenerated like this:
+Par exemple, les modèles `mysql` peuvent accéder à `app` en utilisant `{{ .Values.global.app }}`, tout comme le chart `apache`. Effectivement, le fichier de valeurs ci-dessus est régénéré comme ceci :
 
 ```yaml
 title: "Mon Site Wordpress" # Envoyé au modèle WordPress
@@ -669,22 +667,15 @@ apache:
   port: 8080 # Passé à Apache
 ```
 
-This provides a way of sharing one top-level variable with all subcharts, which
-is useful for things like setting `metadata` properties like labels.
+Cela permet de partager une variable de niveau supérieur avec tous les sous-charts, ce qui est utile pour des éléments tels que la définition de propriétés `metadata` comme les labels.
 
-If a subchart declares a global variable, that global will be passed _downward_
-(to the subchart's subcharts), but not _upward_ to the parent chart. There is no
-way for a subchart to influence the values of the parent chart.
+Si un sous-chart déclare une variable globale, cette variable sera transmise _vers le bas_ (aux sous-charts du sous-chart), mais pas _vers le haut_ au chart parent. Il n'existe aucun moyen pour un sous-chart d'influencer les valeurs du chart parent.
 
-Also, global variables of parent charts take precedence over the global
-variables from subcharts.
+De plus, les variables globales des charts parents prennent le pas sur les variables globales des sous-charts.
 
-### Schema Files
+### Fichiers de Schéma
 
-Sometimes, a chart maintainer might want to define a structure on their values.
-This can be done by defining a schema in the `values.schema.json` file. A schema
-is represented as a [JSON Schema](https://json-schema.org/). It might look
-something like this:
+Parfois, un mainteneur de chart peut vouloir définir une structure pour ses valeurs. Cela peut être fait en définissant un schéma dans le fichier `values.schema.json`. Un schéma est représenté sous la forme d'un [Schéma JSON](https://json-schema.org/). Il pourrait ressembler à ceci :
 
 ```json
 {
@@ -724,16 +715,14 @@ something like this:
 }
 ```
 
-This schema will be applied to the values to validate it. Validation occurs when
-any of the following commands are invoked:
+Ce schéma sera appliqué aux valeurs pour les valider. La validation se produit lorsque l'une des commandes suivantes est invoquée :
 
 - `helm install`
 - `helm upgrade`
 - `helm lint`
 - `helm template`
 
-An example of a `values.yaml` file that meets the requirements of this schema
-might look something like this:
+Un exemple de fichier `values.yaml` qui respecte les exigences de ce schéma pourrait ressembler à ceci :
 
 ```yaml
 name: frontend
@@ -741,10 +730,7 @@ protocol: https
 port: 443
 ```
 
-Note that the schema is applied to the final `.Values` object, and not just to
-the `values.yaml` file. This means that the following `yaml` file is valid,
-given that the chart is installed with the appropriate `--set` option shown
-below.
+Notez que le schéma est appliqué à l'objet final `.Values`, et non seulement au fichier `values.yaml`. Cela signifie que le fichier `yaml` suivant est valide, à condition que le chart soit installé avec l'option `--set` appropriée, comme indiqué ci-dessous.
 
 ```yaml
 name: frontend
@@ -755,47 +741,30 @@ protocol: https
 helm install --set port=443
 ```
 
-Furthermore, the final `.Values` object is checked against *all* subchart
-schemas. This means that restrictions on a subchart can't be circumvented by a
-parent chart. This also works backwards - if a subchart has a requirement that
-is not met in the subchart's `values.yaml` file, the parent chart *must* satisfy
-those restrictions in order to be valid.
+De plus, l'objet final `.Values` est vérifié par rapport à *tous* les schémas des sous-charts. Cela signifie que les restrictions d'un sous-chart ne peuvent pas être contournées par un chart parent. Cela fonctionne également dans l'autre sens : si un sous-chart a une exigence qui n'est pas respectée dans son fichier `values.yaml`, le chart parent *doit* satisfaire à ces restrictions pour être valide.
 
-### References
+### Références
 
-When it comes to writing templates, values, and schema files, there are several
-standard references that will help you out.
+En ce qui concerne l'écriture de modèles, de valeurs et de fichiers de schéma, il existe plusieurs références standard qui peuvent vous aider.
 
-- [Go templates](https://godoc.org/text/template)
-- [Extra template functions](https://godoc.org/github.com/Masterminds/sprig)
-- [The YAML format](https://yaml.org/spec/)
-- [JSON Schema](https://json-schema.org/)
+- [Templates Go](https://godoc.org/text/template)
+- [Fonctions supplémentaires pour les modèles](https://godoc.org/github.com/Masterminds/sprig)
+- [Le format YAML](https://yaml.org/spec/)
+- [Schéma JSON](https://json-schema.org/)
 
-## Custom Resource Definitions (CRDs)
+## Définitions de Ressources Personnalisées (CRDs)
 
-Kubernetes provides a mechanism for declaring new types of Kubernetes objects.
-Using CustomResourceDefinitions (CRDs), Kubernetes developers can declare custom
-resource types.
+Kubernetes fournit un mécanisme pour déclarer de nouveaux types d'objets Kubernetes. En utilisant les CustomResourceDefinitions (CRD), les développeurs Kubernetes peuvent déclarer des types de ressources personnalisées.
 
-In Helm 3, CRDs are treated as a special kind of object. They are installed
-before the rest of the chart, and are subject to some limitations.
+Dans Helm 3, les CRD (Custom Resource Definitions) sont considérés comme un type spécial d'objet. Ils sont installés avant le reste du chart et sont soumis à certaines limitations.
 
-CRD YAML files should be placed in the `crds/` directory inside of a chart.
-Multiple CRDs (separated by YAML start and end markers) may be placed in the
-same file. Helm will attempt to load _all_ of the files in the CRD directory
-into Kubernetes.
+Les fichiers YAML des CRD doivent être placés dans le répertoire `crds/` à l'intérieur d'un chart. Plusieurs CRD (séparées par des marqueurs de début et de fin YAML) peuvent être placées dans le même fichier. Helm tentera de charger _tous_ les fichiers du répertoire CRD dans Kubernetes.
 
-CRD files _cannot be templated_. They must be plain YAML documents.
+Les fichiers de CRD _ne peuvent pas être modélisés_. Ils doivent être de simple documents YAML. 
 
-When Helm installs a new chart, it will upload the CRDs, pause until the CRDs
-are made available by the API server, and then start the template engine, render
-the rest of the chart, and upload it to Kubernetes. Because of this ordering,
-CRD information is available in the `.Capabilities` object in Helm templates,
-and Helm templates may create new instances of objects that were declared in
-CRDs.
+Lorsque Helm installe un nouveau chart, il télécharge les CRD, fait une pause jusqu'à ce que les CRD soient disponibles via le serveur API, puis démarre le moteur de modèles, rend le reste du chart et le télécharge dans Kubernetes. En raison de cet ordre, les informations sur les CRD sont disponibles dans l'objet `.Capabilities` des modèles Helm, et les modèles Helm peuvent créer de nouvelles instances d'objets déclarés dans les CRD.
 
-For example, if your chart had a CRD for `CronTab` in the `crds/` directory, you
-may create instances of the `CronTab` kind in the `templates/` directory:
+Par exemple, si votre chart avait une CRD pour `CronTab` dans le répertoire `crds/`, vous pouvez créer des instances du type `CronTab` dans le répertoire `templates/` :
 
 ```text
 crontabs/
@@ -806,7 +775,7 @@ crontabs/
     mycrontab.yaml
 ```
 
-The `crontab.yaml` file must contain the CRD with no template directives:
+Le fichier `crontab.yaml` doit contenir la CRD sans directives de modèle :
 
 ```yaml
 kind: CustomResourceDefinition
@@ -825,8 +794,7 @@ spec:
     kind: CronTab
 ```
 
-Then the template `mycrontab.yaml` may create a new `CronTab` (using templates
-as usual):
+Ensuite, le modèle `mycrontab.yaml` peut créer un nouveau `CronTab` (en utilisant des modèles comme d'habitude) :
 
 ```yaml
 apiVersion: stable.example.com
@@ -837,81 +805,58 @@ spec:
    # ...
 ```
 
-Helm will make sure that the `CronTab` kind has been installed and is available
-from the Kubernetes API server before it proceeds installing the things in
-`templates/`.
+Helm s'assurera que le type `CronTab` a été installé et est disponible depuis le serveur API Kubernetes avant de procéder à l'installation des éléments dans `templates/`.
 
-### Limitations on CRDs
+### Limitations sur les CRDs
 
-Unlike most objects in Kubernetes, CRDs are installed globally. For that reason,
-Helm takes a very cautious approach in managing CRDs. CRDs are subject to the
-following limitations:
+Contrairement à la plupart des objets dans Kubernetes, les CRD sont installées globalement. Pour cette raison, Helm adopte une approche très prudente dans la gestion des CRD. Les CRD sont soumises aux limitations suivantes :
 
-- CRDs are never reinstalled. If Helm determines that the CRDs in the `crds/`
-  directory are already present (regardless of version), Helm will not attempt
-  to install or upgrade.
-- CRDs are never installed on upgrade or rollback. Helm will only create CRDs on
-  installation operations.
-- CRDs are never deleted. Deleting a CRD automatically deletes all of the CRD's
-  contents across all namespaces in the cluster. Consequently, Helm will not
-  delete CRDs.
+- Les CRD ne sont jamais réinstallées. Si Helm détermine que les CRD dans le répertoire `crds/` sont déjà présentes (indépendamment de la version), Helm ne tentera pas de les installer ou de les mettre à niveau.
+- Les CRD ne sont jamais installées lors d'une mise à niveau ou d'un retour en arrière. Helm ne créera des CRD que lors des opérations d'installation.
+- Les CRD ne sont jamais supprimées. La suppression d'une CRD supprime automatiquement tout le contenu de la CRD dans tous les namespaces du cluster. Par conséquent, Helm ne supprimera pas les CRD.
 
-Operators who want to upgrade or delete CRDs are encouraged to do this manually
-and with great care.
+Les opérateurs qui souhaitent mettre à niveau ou supprimer des CRD sont encouragés à le faire manuellement et avec une grande prudence.
 
-## Using Helm to Manage Charts
+## Utiliser Helm pour gérer les Charts
 
-The `helm` tool has several commands for working with charts.
+L'outil `helm` dispose de plusieurs commandes pour travailler avec les charts.
 
-It can create a new chart for you:
+Il peut créer un nouveau chart pour vous :
 
 ```console
 $ helm create mychart
 Created mychart/
 ```
 
-Once you have edited a chart, `helm` can package it into a chart archive for
-you:
+Une fois que vous avez modifié un chart, `helm` peut l'emballer dans une archive de chart pour vous :
 
 ```console
 $ helm package mychart
 Archived mychart-0.1.-.tgz
 ```
 
-You can also use `helm` to help you find issues with your chart's formatting or
-information:
+Vous pouvez également utiliser `helm` pour vous aider à trouver des problèmes avec le formatage ou les informations de votre chart :
 
 ```console
 $ helm lint mychart
 No issues found
 ```
 
-## Chart Repositories
+## Dépôts de Charts
 
-A _chart repository_ is an HTTP server that houses one or more packaged charts.
-While `helm` can be used to manage local chart directories, when it comes to
-sharing charts, the preferred mechanism is a chart repository.
+Un _dépôt de charts_ est un serveur HTTP qui héberge un ou plusieurs charts emballés. Bien que `helm` puisse être utilisé pour gérer des répertoires de charts locaux, le mécanisme préféré pour partager des charts est un dépôt de charts.
 
-Any HTTP server that can serve YAML files and tar files and can answer GET
-requests can be used as a repository server. The Helm team has tested some
-servers, including Google Cloud Storage with website mode enabled, and S3 with
-website mode enabled.
+Tout serveur HTTP capable de servir des fichiers YAML et des fichiers tar, et de répondre aux requêtes GET, peut être utilisé comme serveur de dépôt. L'équipe Helm a testé certains serveurs, y compris Google Cloud Storage avec le mode site Web activé, et S3 avec le mode site Web activé.
 
-A repository is characterized primarily by the presence of a special file called
-`index.yaml` that has a list of all of the packages supplied by the repository,
-together with metadata that allows retrieving and verifying those packages.
+Un dépôt est principalement caractérisé par la présence d'un fichier spécial appelé `index.yaml`, qui contient une liste de tous les packages fournis par le dépôt, ainsi que des métadonnées permettant de récupérer et de vérifier ces packages.
 
-On the client side, repositories are managed with the `helm repo` commands.
-However, Helm does not provide tools for uploading charts to remote repository
-servers. This is because doing so would add substantial requirements to an
-implementing server, and thus raise the barrier for setting up a repository.
+Côté client, les dépôts sont gérés avec les commandes `helm repo`. Cependant, Helm ne fournit pas d'outils pour télécharger des charts sur des serveurs de dépôt distants. En effet, cela imposerait des exigences substantielles au serveur de dépôt, augmentant ainsi la difficulté de mise en place d'un dépôt.
 
-## Chart Starter Packs
+## Packs de démarrage de Charts
 
-The `helm create` command takes an optional `--starter` option that lets you
-specify a "starter chart". Also, the starter option has a short alias `-p`.
+La commande `helm create` prend une option `--starter` facultative qui vous permet de spécifier un "chart de démarrage". De plus, l'option de démarrage a un alias court `-p`.
 
-Examples of usage:
+Exemple d'utilisation :
 
 ```console
 helm create my-chart --starter starter-name
@@ -919,16 +864,10 @@ helm create my-chart -p starter-name
 helm create my-chart -p /absolute/path/to/starter-name
 ```
 
-Starters are just regular charts, but are located in
-`$XDG_DATA_HOME/helm/starters`. As a chart developer, you may author charts that
-are specifically designed to be used as starters. Such charts should be designed
-with the following considerations in mind:
+Les starters sont simplement des charts réguliers, mais situés dans `$XDG_DATA_HOME/helm/starters`. En tant que développeur de charts, vous pouvez créer des charts spécifiquement conçus pour être utilisés comme starters. Ces charts doivent être conçus en tenant compte des considérations suivantes :
 
-- The `Chart.yaml` will be overwritten by the generator.
-- Users will expect to modify such a chart's contents, so documentation should
-  indicate how users can do so.
-- All occurrences of `<CHARTNAME>` will be replaced with the specified chart name so that starter charts can be used as templates, except for some variable files. For example, if you use custom files in the `vars` directory or certain `README.md` files, `<CHARTNAME>` will NOT override inside them. Additionally, the chart description is not inherited.
+- Le fichier `Chart.yaml` sera écrasé par le générateur.
+- Les utilisateurs s'attendront à modifier le contenu d'un tel chart, donc la documentation doit indiquer comment les utilisateurs peuvent le faire.
+- Toutes les occurrences de `<CHARTNAME>` seront remplacées par le nom du chart spécifié afin que les charts de démarrage puissent être utilisés comme modèles, à l'exception de certains fichiers de variables. Par exemple, si vous utilisez des fichiers personnalisés dans le répertoire `vars` ou certains fichiers `README.md`, `<CHARTNAME>` ne sera PAS remplacé à l'intérieur de ceux-ci. De plus, la description du chart n'est pas héritée.
 
-Currently the only way to add a chart to `$XDG_DATA_HOME/helm/starters` is to
-manually copy it there. In your chart's documentation, you may want to explain
-that process.
+Actuellement, la seule façon d'ajouter un chart à `$XDG_DATA_HOME/helm/starters` est de le copier manuellement à cet emplacement. Dans la documentation de votre chart, vous pourriez vouloir expliquer ce processus.
